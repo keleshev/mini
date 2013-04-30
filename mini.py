@@ -6,13 +6,12 @@ from parsimonious.grammar import Grammar
 class Mini(object):
 
     def __init__(self, env={}):
-        env.update({'sum': lambda *args: sum(args)})
+        env['sum'] = lambda *args: sum(args)
         self.env = env
 
     def parse(self, source):
         grammar = '\n'.join(v.__doc__ for k, v in vars(self.__class__).items()
-                            if not k.startswith('__') and hasattr(v, '__doc__')
-                                                      and getattr(v, '__doc__'))
+                      if '__' not in k and hasattr(v, '__doc__') and v.__doc__)
         return Grammar(grammar)['program'].parse(source)
 
     def eval(self, source):
