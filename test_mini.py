@@ -31,6 +31,7 @@ def test_lambdas():
     assert Mini().eval('addten = (b) -> (b + 10) \n addten(2)')[-1] == 12
     source = 'x = 10 \n addx = (a) -> (a + x) \n addx(2)'
     assert Mini().eval(source)[-1] == 12
+    assert Mini().eval('add = (a b) -> (a + b) \n add(42 12)')[-1] == 54
 
 
 def test_factorial():

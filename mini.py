@@ -16,26 +16,22 @@ class Mini(object):
 
     def eval(self, source):
         node = self.parse(source) if isinstance(source, str) else source
-        method = getattr(self, node.expr_name, lambda *a: 'error')
+        method = getattr(self, node.expr_name, lambda node, children: children)
         if node.expr_name in ['ifelse', 'func']:
             return method(node)
         return method(node, [self.eval(n) for n in node])
 
     def program(self, node, children):
-        'program = statement*'
+        'program = expr*'
         return children
 
-    def statement(self, node, children):
-        'statement = _ expr _'
-        return children[1]
-
     def expr(self, node, children):
-        'expr = func / ifelse / call / infix / assignment / number / name'
-        return children[0]
+        'expr = _ (func / ifelse / call / infix / assignment / number / name) _'
+        return children[1][0]
 
     def func(self, node):
-        'func = "(" parameters ")" _ "->" _ expr _'
-        _, params, _, _, _, _, expr, _ = node
+        'func = "(" parameters ")" _ "->" expr'
+        _, params, _, _, _, expr = node
         params = map(self.eval, params)
         def func(*args):
             env = dict(self.env.items() + zip(params, args))
@@ -47,26 +43,22 @@ class Mini(object):
         return children
 
     def ifelse(self, node):
-        'ifelse = "if" _ expr _ "then" _ expr _ "else" _ expr _'
-        _, _, cond, _, _, _, cons, _, _, _, alt, _ = node
+        'ifelse = "if" expr "then" expr "else" expr'
+        _, cond, _, cons, _, alt = node
         return self.eval(cons) if self.eval(cond) else self.eval(alt)
 
     def call(self, node, children):
-        'call = name "(" arguments ")" _'
-        name, _, arguments, _, _ = children
+        'call = name "(" arguments ")"'
+        name, _, arguments, _ = children
         return name(*arguments)
 
     def arguments(self, node, children):
-        'arguments = argument*'
+        'arguments = expr*'
         return children
 
-    def argument(self, node, children):
-        'argument = expr _'
-        return children[0]
-
     def infix(self, node, children):
-        'infix = "(" _ expr _ operator _ expr _ ")" _'
-        _, _, expr1, _, operator, _, expr2, _, _, _ = children
+        'infix = "(" expr operator expr ")"'
+        _, expr1, operator, expr2, _ = children
         return operator(expr1, expr2)
 
     def operator(self, node, children):
@@ -75,8 +67,8 @@ class Mini(object):
         return operators[node.text]
 
     def assignment(self, node, children):
-        'assignment = lvalue _ "=" _ expr _'
-        lvalue, _, _, _, expr, _ = children
+        'assignment = lvalue "=" expr'
+        lvalue, _, expr = children
         self.env[lvalue] = expr
         return expr
 
@@ -89,7 +81,7 @@ class Mini(object):
         return self.env.get(node.text.strip(), -1)
 
     def number(self, node, children):
-        'number = ~"[0-9]+" _'
+        'number = ~"[0-9]+"'
         return int(node.text)
 
     def _(self, node, children):
